@@ -460,81 +460,39 @@ int main(void) {
       board.removeFirst(board.openSet, board.openCount--);
       board.closedSet[board.closedCount++] = cur;
 
-      // Check left neighbor
-      if (cur.x > 0) {
-        if (board.c[cur.x-1][cur.y].status == Board::END) {
-          board.c[cur.x-1][cur.y].parent = cur;
-          board.progress = Board::POST_SOLVE;
-        }
-        if (!board.isIn(board.closedSet, board.closedCount, {cur.x-1, cur.y}) && board.c[cur.x-1][cur.y].status != Board::WALL) {
-          if (board.c[cur.x-1][cur.y].f > board.c[cur.x][cur.y].g+1+board.heuristic({cur.x-1, cur.y}, board.end)) {
-            board.openSet[board.openCount++] = {cur.x-1, cur.y};
-            board.c[cur.x-1][cur.y].g = board.c[cur.x][cur.y].g+1;
-            board.c[cur.x-1][cur.y].h = board.heuristic({cur.x-1, cur.y}, board.end);
-            board.c[cur.x-1][cur.y].f = board.c[cur.x-1][cur.y].g + board.c[cur.x-1][cur.y].h;
-            board.c[cur.x-1][cur.y].parent = cur;
-            board.c[cur.x-1][cur.y].status = Board::CHECKED;
-            board.changeColor({cur.x-1, cur.y}, Board::CHECKED);
+      // Define a lambda function for processing neighbors
+      auto processNeighbor = [&](Coord neighbor) {
+        if (!board.isIn(board.closedSet, board.closedCount, neighbor) && board.c[neighbor.x][neighbor.y].status != Board::WALL) {
+          int tentative_gScore = board.c[cur.x][cur.y].g + 1;
+          int hScore = board.heuristic(neighbor, board.end);
+          int fScore = tentative_gScore + hScore;
+
+          if (!board.isIn(board.openSet, board.openCount, neighbor) || fScore < board.c[neighbor.x][neighbor.y].f) {
+            board.c[neighbor.x][neighbor.y].g = tentative_gScore;
+            board.c[neighbor.x][neighbor.y].h = hScore;
+            board.c[neighbor.x][neighbor.y].f = fScore;
+            board.c[neighbor.x][neighbor.y].parent = cur;
+
+            if (!board.isIn(board.openSet, board.openCount, neighbor)) {
+              board.openSet[board.openCount++] = neighbor;
+              board.c[neighbor.x][neighbor.y].status = Board::CHECKED;
+              board.changeColor(neighbor, Board::CHECKED);
+            }
           }
         }
+      };
+
+      // Check left, right, top, and bottom neighbors
+      if (cur.x > 0) processNeighbor({cur.x - 1, cur.y});
+      if (cur.x < BOARD_SIZE - 1) processNeighbor({cur.x + 1, cur.y});
+      if (cur.y > 0) processNeighbor({cur.x, cur.y - 1});
+      if (cur.y < BOARD_SIZE - 1) processNeighbor({cur.x, cur.y + 1});
+
+      // Check if the END cell is in the closedSet
+      if (board.isIn(board.closedSet, board.closedCount, board.end)) {
+        board.progress = Board::POST_SOLVE;
       }
 
-      // Check right neighbor
-      if (cur.x < BOARD_SIZE-1) {
-        if (board.c[cur.x+1][cur.y].status == Board::END) {
-          board.c[cur.x+1][cur.y].parent = cur;
-          board.progress = Board::POST_SOLVE;
-        }
-        if (!board.isIn(board.closedSet, board.closedCount, {cur.x+1, cur.y}) && board.c[cur.x+1][cur.y].status != Board::WALL) {
-          if (board.c[cur.x+1][cur.y].f > board.c[cur.x][cur.y].g+1+board.heuristic({cur.x+1, cur.y}, board.end)) {
-            board.openSet[board.openCount++] = {cur.x+1, cur.y};
-            board.c[cur.x+1][cur.y].g = board.c[cur.x][cur.y].g+1;
-            board.c[cur.x+1][cur.y].h = board.heuristic({cur.x+1, cur.y}, board.end);
-            board.c[cur.x+1][cur.y].f = board.c[cur.x+1][cur.y].g + board.c[cur.x+1][cur.y].h;
-            board.c[cur.x+1][cur.y].parent = cur;
-            board.c[cur.x+1][cur.y].status = Board::CHECKED;
-            board.changeColor({cur.x+1, cur.y}, Board::CHECKED);
-          }
-        }
-      }
-
-      // Check top neighbor
-      if (cur.y > 0) {
-        if (board.c[cur.x][cur.y-1].status == Board::END) {
-          board.c[cur.x][cur.y-1].parent = cur;
-          board.progress = Board::POST_SOLVE;
-        }
-        if (!board.isIn(board.closedSet, board.closedCount, {cur.x, cur.y-1}) && board.c[cur.x][cur.y-1].status != Board::WALL) {
-          if (board.c[cur.x][cur.y-1].f > board.c[cur.x][cur.y].g+1+board.heuristic({cur.x, cur.y-1}, board.end)) {
-            board.openSet[board.openCount++] = {cur.x, cur.y-1};
-            board.c[cur.x][cur.y-1].g = board.c[cur.x][cur.y].g+1;
-            board.c[cur.x][cur.y-1].h = board.heuristic({cur.x, cur.y-1}, board.end);
-            board.c[cur.x][cur.y-1].f = board.c[cur.x][cur.y-1].g + board.c[cur.x][cur.y-1].h;
-            board.c[cur.x][cur.y-1].parent = cur;
-            board.c[cur.x][cur.y-1].status = Board::CHECKED;
-            board.changeColor({cur.x, cur.y-1}, Board::CHECKED);
-          }
-        }
-      }
-
-      // Check bottom neighbor
-      if (cur.y < BOARD_SIZE-1) {
-        if (board.c[cur.x][cur.y+1].status == Board::END) {
-          board.c[cur.x][cur.y+1].parent = cur;
-          board.progress = Board::POST_SOLVE;
-        }
-        if (!board.isIn(board.closedSet, board.closedCount, {cur.x, cur.y+1}) && board.c[cur.x][cur.y+1].status != Board::WALL) {
-          if (board.c[cur.x][cur.y+1].f > board.c[cur.x][cur.y].g+1+board.heuristic({cur.x, cur.y+1}, board.end)) {
-            board.openSet[board.openCount++] = {cur.x, cur.y+1};
-            board.c[cur.x][cur.y+1].g = board.c[cur.x][cur.y].g+1;
-            board.c[cur.x][cur.y+1].h = board.heuristic({cur.x, cur.y+1}, board.end);
-            board.c[cur.x][cur.y+1].f = board.c[cur.x][cur.y+1].g + board.c[cur.x][cur.y+1].h;
-            board.c[cur.x][cur.y+1].parent = cur;
-            board.c[cur.x][cur.y+1].status = Board::CHECKED;
-            board.changeColor({cur.x, cur.y+1}, Board::CHECKED);
-          }
-        }
-      }
       glBufferData(GL_ARRAY_BUFFER, sizeof(board.vertices), board.vertices, GL_STATIC_DRAW);
     }
 
